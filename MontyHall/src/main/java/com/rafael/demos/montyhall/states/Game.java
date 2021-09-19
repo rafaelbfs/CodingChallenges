@@ -132,15 +132,10 @@ public class Game {
     }
   }
 
-  public class Box {
-    private final BoxContents contents;
+  public record Box(BoxContents contents) {
 
     public boolean hasPrize() {
       return BoxContents.MONEY.equals(contents);
-    }
-
-    public Box(BoxContents contents) {
-      this.contents = contents;
     }
   }
 
