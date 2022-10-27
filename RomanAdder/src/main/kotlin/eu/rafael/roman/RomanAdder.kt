@@ -1,12 +1,23 @@
-package com.rafael.roman
+package eu.rafael.roman
 
-import java.util.Optional
 
-enum class Tokens {
-    M, D, C, L, X, V, I
-}
 
 data class RNumber(val i: String, val iv: String, val v: String, val ix: String, val x: String) {
+    fun balanceRepeated(digit: Char, carry: Char, repeated: String): Triple<String, String, String> {
+        return when(repeated) {
+            digit.toString().repeat(4) -> Triple(digit.toString(), carry.toString(), "")
+            digit.toString().repeat(5) -> Triple("", carry.toString(), "")
+            digit.toString().repeat(6) -> Triple("", carry.toString(), digit.toString())
+            else -> Triple("", "", repeated)
+        }
+    }
+    fun balanceAroundPivot(left: StringBuilder, right: StringBuilder) {
+        if (left.length > 0 && right.length >= left.length) {
+            val len = left.length;
+            left.delete(0, len)
+            right.delete(0, len)
+        }
+    }
     fun balance(): RNumber {
         var ni = StringBuilder(i)
         var niv = StringBuilder(iv)
@@ -14,7 +25,7 @@ data class RNumber(val i: String, val iv: String, val v: String, val ix: String,
         var nix = StringBuilder(ix)
         var nx = StringBuilder(x)
 
-        if (niv.length > 0 && ni.length >= niv.length) {
+        /*if (niv.length > 0 && ni.length >= niv.length) {
             val len = niv.length;
             niv.delete(0, len)
             ni.delete(0, len)
@@ -23,9 +34,17 @@ data class RNumber(val i: String, val iv: String, val v: String, val ix: String,
             val len = nix.length;
             nix.delete(0, len)
             ni.delete(0, len)
-        }
+        }*/
+        balanceAroundPivot(niv, ni)
+        balanceAroundPivot(nix, ni)
 
-        if (i == "IIII") {
+        var t = balanceRepeated('I', 'V', ni.toString());
+
+        niv.append(t.first);
+        nv.append(t.second)
+        ni.clear().append(t.third)
+
+        /* if (i == "IIII") {
             niv.append("I")
             nv.append("V")
             ni.delete(0, ni.length)
@@ -37,7 +56,8 @@ data class RNumber(val i: String, val iv: String, val v: String, val ix: String,
         if (i == "IIIIII") {
             nv.append("V")
             ni.delete(0, ni.length - 1)
-        }
+        }*/
+
         if (niv.contains("II")) {
             ni.append("III")
             nv.delete(0, 1)
@@ -62,7 +82,6 @@ data class RNumber(val i: String, val iv: String, val v: String, val ix: String,
         var xstr = x.dropLast(ix.length)
         return xstr + ixstr + iv + v + i;
     }
-
 
     companion object {
         fun parse(num: String): RNumber {
@@ -106,20 +125,4 @@ fun getSeq(seq: String): (String) -> String {
 
 fun transform(seq: String, target: String): (String) -> String {
     return {if (it == seq) target else ""}
-}
-
-fun Add(n1: String, n2: String) {
-    var a1 = n1.uppercase(); var a2 = n2.uppercase();
-    val i1 = a1.takeLastWhile { it == 'I' }; val i2 = a2.takeLastWhile { it == 'I' }
-    a1 = a1.substring(0, a1.length - i1.length); a2 = a2.substring(0, a2.length - i2.length)
-    val iv1 = Optional.of(a1).map(getSeq("IV")).orElse("")
-    val iv2 = Optional.of(a2).map(getSeq("IV")).orElse("")
-    val iv = Optional.ofNullable(i1 + i2).map(transform("IIII", "IV")).orElse("")
-    a1 = a1.substring(0, a1.length - iv1.length); a2 = a2.substring(0, a2.length - iv2.length);
-    val v1 = a1.takeLastWhile { it == 'V' }; val v2 = a2.takeLastWhile { it == 'V' };
-    var v = v1 + v2 + Optional.of(i1 + i2).map(transform("IIIII", "V")).orElse("")
-    val vi = Optional.of(i1 + i2).map(transform("IIIIII", "VI")).orElse("")
-    v = Optional.of(v).map(transform("VVV", "XV")).map(transform("VV", "X")).orElse("")
-
-    v + iv + vi;
 }

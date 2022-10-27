@@ -1,4 +1,5 @@
-import com.rafael.roman.RNumber
+
+import eu.rafael.roman.RNumber
 import org.junit.jupiter.api.Assertions.*
 
 import org.junit.jupiter.api.Test
