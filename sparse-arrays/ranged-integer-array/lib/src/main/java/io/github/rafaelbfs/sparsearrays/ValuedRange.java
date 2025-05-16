@@ -1,5 +1,7 @@
 package io.github.rafaelbfs.sparsearrays;
 
+import java.util.function.BinaryOperator;
+
 public class ValuedRange {
     protected int start;
     protected int end;
@@ -9,6 +11,11 @@ public class ValuedRange {
         this.start = start;
         this.end = end;
         this.value = value;
+    }
+
+    public long update(BinaryOperator<Long> op, long other) {
+        value = op.apply(value, other);
+        return value;
     }
 
     public boolean below(ValuedRange other) {

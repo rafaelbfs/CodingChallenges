@@ -1,7 +1,5 @@
 package io.github.rafaelbfs.sparsearrays.util;
 
-import io.github.rafaelbfs.sparsearrays.RangeTree;
-
 public record Pair<T, U>(T fst, U snd) {
     protected static Pair<?, ?> EMPTY = new Pair<>(null, null);
 

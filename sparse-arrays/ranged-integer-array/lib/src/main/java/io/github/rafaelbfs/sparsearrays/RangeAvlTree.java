@@ -4,12 +4,13 @@ import io.github.rafaelbfs.sparsearrays.util.Pair;
 
 import java.util.EnumSet;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 public class RangeAvlTree {
-    private static final int CELL_WIDTH = 36;
+    private static final int CELL_WIDTH = 24;
     private static final String CELL_FORMAT = "%" + CELL_WIDTH + "s";
 
     private static final NilNode NIL = new NilNode();
@@ -70,14 +71,20 @@ public class RangeAvlTree {
                 return Pair.empty();
             }
             if (rng.contains(range)) {
-                var newLeft = new ValuedRange(rng.start, this.range.start - 1, rng.value);
-                var newRight = new ValuedRange(this.range.end + 1, rng.end, rng.value);
+                var newLeft = rng.start == range.start ? null :
+                        new ValuedRange(rng.start, range.start - 1, rng.value);
+                var newRight = rng.end == range.end ? null :
+                        new ValuedRange(this.range.end + 1, rng.end, rng.value);
                 this.range.value += rng.value;
                 return Pair.of(newLeft, newRight);
             }
             if (range.contains(rng)) {
-                var left = new ValuedRange(this.range.start, rng.start - 1, range.value);
-                var right = new ValuedRange(rng.end + 1, this.range.end, range.value);
+                var left = rng.start == range.start ? null :
+                        new ValuedRange(this.range.start, rng.start - 1, range.value);
+                var right = rng.end == range.end ? null :
+                        new ValuedRange(rng.end + 1, range.end, range.value);
+                this.range.start = rng.start;
+                this.range.end = rng.end;
                 this.range.value += rng.value;
                 return Pair.of(left, right);
             }
@@ -194,16 +201,25 @@ public class RangeAvlTree {
             return Math.max(range.value, mxChildren);
         }
 
-        public void toString(int treeHeight, int offset, ConcurrentMap<Integer, StringBuffer> lines) {
-            var line = lines.get(treeHeight);
-            var txt = CELL_FORMAT.formatted(range.toString());
+        @Override
+        public String toString() {
+            return CELL_FORMAT.formatted("H%d ".formatted(height) + range.toString());
+        }
+
+        protected void toString(int treeHeight, int level, int offset, ConcurrentMap<Integer, StringBuffer> lines) {
+            if (level >= treeHeight) {
+                return;
+            }
+            var step = (1 << Math.max(treeHeight - level - 1, 0)) * CELL_WIDTH / 2;
+            var line = lines.get(level);
+            var txt = toString();
             CompletableFuture<Void> leftTask = CompletableFuture.runAsync(() -> {});
             var rightTask = leftTask;
             if (!left.isNil()) {
-                leftTask = CompletableFuture.runAsync(() -> left.toString(treeHeight + 1, offset - CELL_WIDTH * 2, lines));
+                leftTask = CompletableFuture.runAsync(() -> left.toString(treeHeight, level + 1, offset - step, lines));
             }
             if (!right.isNil()) {
-                rightTask = CompletableFuture.runAsync(() -> right.toString(treeHeight + 1, offset + CELL_WIDTH * 2, lines));
+                rightTask = CompletableFuture.runAsync(() -> right.toString(treeHeight, level + 1, offset + step, lines));
             }
 
             line.replace(offset, txt.length() + offset, txt);
@@ -261,19 +277,20 @@ public class RangeAvlTree {
     }
 
     public String toString() {
-        var treeHeight = root.height;
+        var treeHeight = Math.min(root.height, 10); // For performance reasons,
+        // we only print the first 10 levels of the tree as the length of each line is proportional to 2^h
         if (treeHeight <= 0) {
             return "Empty tree";
         }
-        int firstOffset = Long.valueOf(Math.round(Math.pow(2.0f, (float) treeHeight) / 2.0f)).intValue() * CELL_WIDTH/2;
+        int firstOffset = (1 << treeHeight) * CELL_WIDTH;
         var map = new ConcurrentHashMap<Integer, StringBuffer>();
         for (int i = 0; i < treeHeight; i++) {
-            map.put(i, new StringBuffer("-".repeat(firstOffset * 2)));
+            map.put(i, new StringBuffer("-".repeat(firstOffset + CELL_WIDTH)));
         }
-        root.toString(0, firstOffset, map);
+        root.toString(treeHeight, 0, firstOffset/2, map);
         var sb = new StringBuilder();
         for (int i = 0; i < treeHeight; i++) {
-            sb.append(map.getOrDefault(i, new StringBuffer())).append("\n");
+            sb.append(Optional.ofNullable(map.get(i)).orElseGet(StringBuffer::new)).append("\n");
         }
         return sb.toString();
     }
